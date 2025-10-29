@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Company;
 use App\Models\Invoice;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 class InvoiceController extends Controller
 {
@@ -153,13 +155,16 @@ class InvoiceController extends Controller
         $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
         $path = "invoices/{$invoice->invoice_number}.pdf";
         Storage::put($path, $pdf->output());
-
-        return response()->json([
-            'message' => 'PDF generated successfully',
-            'pdf_path' => asset("storage/{$path}")
-        ]);
+        return $pdf->stream("invoice-{$invoice->invoice_number}.pdf");
     }
-
+    public function downloadPDF($id)
+    {
+        $invoice = Invoice::with(['order.customer', 'items.product'])->findOrFail($id);
+        $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
+        $path = "invoices/{$invoice->invoice_number}.pdf";
+        Storage::put($path, $pdf->output());
+        return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
+    }
     /**
      * Preview invoice JSON (API)
      */

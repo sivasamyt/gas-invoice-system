@@ -63,6 +63,7 @@
                     <td>
                         <a href="{{ route('invoices.show', $invoice->id) }}" class="btn btn-sm btn-info">View</a>
                         <a href="{{ route('invoices.pdf', $invoice->id) }}" class="btn btn-sm btn-outline-secondary">PDF</a>
+                        <a href="{{ route('invoices.download', $invoice->id) }}" class="btn btn-sm btn-success">Download</a>
                     </td>
                 </tr>
             @empty
