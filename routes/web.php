@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\{
-    CompanyController,
+    // CompanyController,
     CustomerController,
     ProductController,
     OrderController,
@@ -29,16 +29,16 @@ Route::get('order', [PageController::class, 'order_form'])->name('order.form');
 Route::post('order', [PageController::class, 'place_order'])->name('order.create');
 
 // Company Management Routes
-Route::apiResource('companies', CompanyController::class);
+// Route::apiResource('companies', CompanyController::class);
 
 // Customer Management Routes
-Route::apiResource('customers', CustomerController::class);
+// Route::apiResource('customers', CustomerController::class);
 
 // Product Catalog Routes
-Route::apiResource('products', ProductController::class);
+// Route::apiResource('products', ProductController::class);
 
 // Order & Delivery Routes
-Route::apiResource('orders', OrderController::class);
+// Route::apiResource('orders', OrderController::class);
 
 // Invoice Management Routes
 Route::apiResource('invoices', InvoiceController::class);

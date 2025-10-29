@@ -32,4 +32,9 @@
     <p><strong>Tax ({{ $invoice->tax_rate }}%):</strong> ₹{{ number_format($invoice->tax_amount, 2) }}</p>
     <p><strong>Total:</strong> ₹{{ number_format($invoice->total, 2) }}</p>
 </div>
+<div class="d-flex justify-content-center">
+    <a href="{{ url('/')  }}" class="btn btn-success">
+        Home
+    </a>
+</div>
 @endsection
