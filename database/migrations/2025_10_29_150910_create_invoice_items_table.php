@@ -17,6 +17,7 @@ class CreateInvoiceItemsTable extends Migration
             $table->id();
             $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->string('product_name');
             $table->decimal('quantity_liters', 12, 4);
             $table->decimal('unit_price', 12, 4);
             $table->decimal('line_total', 14, 2);

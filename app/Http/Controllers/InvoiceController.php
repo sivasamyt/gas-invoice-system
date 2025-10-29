@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Company;
+use App\Models\Invoice;
 
 class InvoiceController extends Controller
 {
@@ -13,9 +14,33 @@ class InvoiceController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Invoice::with('items.product')->get());
+        $query = Invoice::with(['order.customer'])->latest('invoice_date');
+        if ($search = $request->input('search')) {
+            $query->where('invoice_number', 'like', "%{$search}%")
+                ->orWhereHas('order.customer', function ($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email_address', 'like', "%{$search}%");
+                });
+        }
+
+        if ($from = $request->input('from_date')) {
+            $query->whereDate('invoice_date', '>=', $from);
+        }
+
+        if ($to = $request->input('to_date')) {
+            $query->whereDate('invoice_date', '<=', $to);
+        }
+
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        $invoices = $query->paginate(10);
+
+        return view('invoices.index', compact('invoices'));
     }
 
     /**
@@ -42,8 +67,11 @@ class InvoiceController extends Controller
      */
     public function show($id)
     {
-        $invoice = Invoice::with(['order.customer', 'items.product'])->findOrFail($id);
-        return response()->json($invoice);
+    $invoice = Invoice::with([
+        'order.customer',
+        'items.product',
+    ])->findOrFail($id);
+    return view('invoices.show', compact('invoice'));
     }
 
     /**
@@ -138,9 +166,14 @@ class InvoiceController extends Controller
     public function preview($id)
     {
         $invoice = Invoice::with(['order.customer', 'items.product'])->findOrFail($id);
-        return response()->json([
-            'invoice' => $invoice,
-            'preview_url' => route('invoices.preview', $invoice->id)
-        ]);
+        return view('invoices.preview', compact('invoice'));
+    }
+
+    public function issue(Invoice $invoice)
+    {
+        $invoice->update(['status' => 'issued']);
+        return redirect()
+            ->route('invoices.show', $invoice)
+        ->with('success', 'Invoice has been issued successfully!');
     }
 }

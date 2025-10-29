@@ -30,8 +30,14 @@
             </div>
         @endif
 
+           <div class="d-flex gap-3">
         <a href="{{ route('order.form') }}" class="btn btn-primary">
             🧾 Place New Order
         </a>
+
+        <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary">
+            📄 View Invoice History
+        </a>
+    </div>
     </div>
 @endsection

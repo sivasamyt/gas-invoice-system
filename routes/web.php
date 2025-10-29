@@ -45,8 +45,8 @@ Route::apiResource('invoices', InvoiceController::class);
 
 // Additional Invoice-specific Routes
 Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'generatePDF'])->name('invoices.pdf');
-Route::get('invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
-
+Route::get('invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoice.preview');
+Route::post('/invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->name('invoice.issue');
 
 Route::get('config/tax-rate', function () {
     return response()->json(['gst_rate' => 10]);

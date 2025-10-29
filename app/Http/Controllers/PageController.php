@@ -6,6 +6,9 @@ use App\Models\Customer;
 use App\Models\Address;
 use App\Models\Product;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
 
 
 use Illuminate\Http\Request;
@@ -48,6 +51,7 @@ class PageController extends Controller
                 ->filter(fn($qty) => $qty !== null && $qty > 0);
 
             $total_orders = $this->amount_calculate($products);
+            $product_items = $total_orders['details'];
             $customer = Customer::create([
                 'company_id'     => $validated['company_id'],
                 'first_name'     => $validated['customer_first_name'],
@@ -81,8 +85,18 @@ class PageController extends Controller
                 'status'              => 'pending',
                 'total_amount'        => $total_orders['total'], 
             ]);
-            return redirect('/')
-                ->with('success', 'Order placed successfully.');
+            foreach ($product_items as $product) {
+                $order_items = OrderItem::create([
+                    'order_id'          => $order->id,
+                    'product_id'        => $product['product_id'],
+                    'quantity_liters'   => $product['quantity'],
+                    'unit_price'        => $product['price_per_liter'],
+                    'line_total'        => $product['subtotal'],
+                ]);
+            }
+            $invoice = $this->generateInvoice($order, $total_orders);
+             return redirect()->route('invoice.preview', $invoice->id)
+                ->with('success', 'Order placed successfully. Preview your invoice.');
         }catch (\Exception $e) {
             return redirect('/')
                 ->with('error', 'Failed to order place: ' . $e->getMessage());
@@ -113,5 +127,36 @@ class PageController extends Controller
             'total' => $totalAmount,
             'details' => $details,
         ];
+    }
+    private function generateInvoice($order, $total_orders)
+    {
+        $subtotal = $total_orders['total'];
+        $gstRate = config('tax.gst_rate', 10); 
+        $taxAmount = ($subtotal * $gstRate) / 100;
+        $total = $subtotal + $taxAmount;
+
+        $invoice = Invoice::create([
+            'order_id' => $order->id,
+            'invoice_number' => 'INV-' . strtoupper(uniqid()),
+            'invoice_date' => now(),
+            'sub_total' => $subtotal,
+            'tax_rate' => $gstRate,
+            'tax_amount' => $taxAmount,
+            'total' => $total,
+            'status' => 'draft',
+        ]);
+
+        foreach ($total_orders['details'] as $item) {
+            InvoiceItem::create([
+                'invoice_id' => $invoice->id,
+                'product_id' => $item['product_id'],
+                'product_name' => $item['name'],
+                'unit_price' => $item['price_per_liter'],
+                'quantity_liters' => $item['quantity'],
+                'line_total' => $item['subtotal'],
+            ]);
+        }
+
+        return $invoice;
     }
 }
