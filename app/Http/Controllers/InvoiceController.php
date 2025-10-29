@@ -149,13 +149,10 @@ class InvoiceController extends Controller
     /**
      * Generate standalone PDF (API)
      */
-    public function generatePDF($id)
+    public function print($id)
     {
-        $invoice = Invoice::with(['order.customer', 'items.product'])->findOrFail($id);
-        $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
-        $path = "invoices/{$invoice->invoice_number}.pdf";
-        Storage::put($path, $pdf->output());
-        return $pdf->stream("invoice-{$invoice->invoice_number}.pdf");
+        $invoice = Invoice::with(['order.customer', 'items.product', 'order.company'])->findOrFail($id);
+        return view('invoices.pdf', compact('invoice'));
     }
     public function downloadPDF($id)
     {
@@ -163,6 +160,7 @@ class InvoiceController extends Controller
         $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
         $path = "invoices/{$invoice->invoice_number}.pdf";
         Storage::put($path, $pdf->output());
+        // return $pdf->stream("invoice-{$invoice->invoice_number}.pdf");
         return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
     }
     /**

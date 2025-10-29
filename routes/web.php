@@ -44,7 +44,7 @@ Route::apiResource('orders', OrderController::class);
 Route::apiResource('invoices', InvoiceController::class);
 
 // Additional Invoice-specific Routes
-Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'generatePDF'])->name('invoices.pdf');
+Route::get('invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print');
 Route::get('invoices/{invoice}/download', [InvoiceController::class, 'downloadPDF'])->name('invoices.download');
 Route::get('invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoice.preview');
 Route::post('/invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->name('invoice.issue');
