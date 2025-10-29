@@ -16,7 +16,7 @@ class CreateAddressesTable extends Migration
         Schema::create('addresses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
-            $table->string('type'); // billing or delivery
+            $table->enum('type', ['billing', 'delivery']); 
             $table->text('address');
             $table->string('city')->nullable();
             $table->string('state')->nullable();

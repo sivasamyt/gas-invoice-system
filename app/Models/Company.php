@@ -12,4 +12,10 @@ class Company extends Model
 
     public function customers(){ return $this->hasMany(Customer::class); }
     public function invoices(){ return $this->hasMany(Invoice::class); }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'company_products')
+                    ->withTimestamps();
+    }
 }

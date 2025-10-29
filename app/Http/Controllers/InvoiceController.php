@@ -1,0 +1,146 @@
+<?php
+
+namespace App\Http\Controllers\API;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Company;
+
+class InvoiceController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index()
+    {
+        return response()->json(Invoice::with('items.product')->get());
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+         $validated = $request->validate([
+            'order_id' => 'required|exists:orders,id',
+        ]);
+
+        $order = Order::with('orderItems.product')->findOrFail($validated['order_id']);
+        return $this->generateFromOrder($request, $order);
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        $invoice = Invoice::with(['order.customer', 'items.product'])->findOrFail($id);
+        return response()->json($invoice);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id)
+    {
+        $invoice = Invoice::findOrFail($id);
+        $invoice->update($request->only(['sub_total', 'tax_amount', 'total']));
+        return response()->json(['message' => 'Invoice updated successfully', 'invoice' => $invoice]);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
+    {
+        $invoice->delete();
+        return response()->json(['message' => 'Invoice deleted']);
+    }
+
+    public function generateFromOrder(Request $request, Order $order)
+    {
+        return DB::transaction(function() use ($order) {
+            $items = $order->orderItems;
+            $sub = $items->sum(fn($i) => $i->line_total);
+            $gstRate = 0.10;
+            $tax = round($sub * $gstRate, 2);
+            $total = round($sub + $tax, 2);
+
+            $invoiceNumber = 'INV-' . now()->format('YmdHis') . rand(100,999);
+
+            $invoice = Invoice::create([
+                'invoice_number' => $invoiceNumber,
+                'company_id' => $order->company_id,
+                'customer_id' => $order->customer_id,
+                'order_id' => $order->id,
+                'sub_total' => $sub,
+                'tax_amount' => $tax,
+                'total' => $total,
+                'tax_breakdown' => json_encode(['GST_percent' => 10, 'tax' => $tax])
+            ]);
+
+            foreach ($items as $it) {
+                $invoice->items()->create([
+                    'product_id' => $it->product_id,
+                    'quantity_liters' => $it->quantity_liters,
+                    'unit_price' => $it->unit_price,
+                    'line_total' => $it->line_total,
+                ]);
+            }
+
+
+            $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
+            $path = "invoices/{$invoice->invoice_number}.pdf";
+            Storage::put($path, $pdf->output());
+
+            return response()->json([
+                'message' => 'Invoice generated successfully',
+                'invoice' => $invoice->load('items.product'),
+                'pdf_path' => asset("storage/{$path}")
+            ]);
+        });
+    }
+
+    /**
+     * Generate standalone PDF (API)
+     */
+    public function generatePDF($id)
+    {
+        $invoice = Invoice::with(['order.customer', 'items.product'])->findOrFail($id);
+        $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
+        $path = "invoices/{$invoice->invoice_number}.pdf";
+        Storage::put($path, $pdf->output());
+
+        return response()->json([
+            'message' => 'PDF generated successfully',
+            'pdf_path' => asset("storage/{$path}")
+        ]);
+    }
+
+    /**
+     * Preview invoice JSON (API)
+     */
+    public function preview($id)
+    {
+        $invoice = Invoice::with(['order.customer', 'items.product'])->findOrFail($id);
+        return response()->json([
+            'invoice' => $invoice,
+            'preview_url' => route('invoices.preview', $invoice->id)
+        ]);
+    }
+}
